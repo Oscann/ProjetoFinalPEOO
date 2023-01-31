@@ -1,7 +1,9 @@
 import tkinter as tk
 from user_management import getData, saveData, User, ToDoItem
+import datetime
 
 LIST_BOX_WIDTH = 50
+FORMATTED_VIEW_TEXT = "Prazo: %s\n%s"
 
 
 class App(tk.Tk):
@@ -46,6 +48,7 @@ class Main(WindowContent):
 
         self.listBox = tk.Listbox(
             mainFrame, width=LIST_BOX_WIDTH, height=10, font=("Arial", "10"))
+        self.listBox.bind("<<ListboxSelect>>", self.onSelect)
         self.listBox.grid(row=0, column=0)
 
         self.fillListBox()
@@ -54,29 +57,62 @@ class Main(WindowContent):
         viewFrame.grid(row=0, column=1)
 
         self.todoText = tk.Label(
-            viewFrame, width=LIST_BOX_WIDTH, wraplength=LIST_BOX_WIDTH)
+            viewFrame, width=LIST_BOX_WIDTH, wraplength=200)
         self.todoText.grid()
 
+        inputsFrame = tk.Frame(self)
+        inputsFrame.grid(row=1, column=0, padx=10, pady=10)
+
+        tk.Label(inputsFrame, text="Tarefa").grid(
+            column=0, row=0, pady=(0, 10))
+        self.addToDoText = tk.Entry(inputsFrame)
+        self.addToDoText.grid(column=0, row=1, padx=10)
+
+        tk.Label(inputsFrame, text="Dia").grid(
+            column=1, row=0, pady=(0, 10))
+        self.day = tk.Entry(inputsFrame, width=8)
+        self.day.grid(column=1, row=1, padx=10)
+
+        tk.Label(inputsFrame, text="Mês").grid(
+            column=2, row=0, pady=(0, 10))
+        self.month = tk.Entry(inputsFrame, width=8)
+        self.month.grid(column=2, row=1, padx=10)
+
+        tk.Label(inputsFrame, text="Ano").grid(
+            column=3, row=0, pady=(0, 10))
+        self.year = tk.Entry(inputsFrame, width=8)
+        self.year.grid(column=3, row=1, padx=10)
+
         actionsFrame = tk.Frame(self)
-        actionsFrame.grid(row=1, column=0, padx=20, pady=10)
-        self.addToDoText = tk.Entry(actionsFrame)
-        self.addToDoText.grid(column=0, row=0)
+        actionsFrame.grid(row=2, column=0, padx=20, pady=10)
         self.addToDoButton = tk.Button(
             actionsFrame,
             text="Adicionar Tarefa",
             command=self.addToDo
         )
-        self.addToDoButton.grid(column=1, row=0)
+        self.addToDoButton.grid(column=0, row=0, padx=10, pady=10)
 
-        self.deleteToDoButton = tk.Button(
-            actionsFrame, text="Excluir Tarefa", command=self.deleteToDo)
+        self.editToDoButton = tk.Button(
+            actionsFrame, text="Editar Tarefa", command=self.createEditScreen)
+        self.editToDoButton.grid(row=0, column=1, padx=10)
+
+        self.doneButton = tk.Button(
+            actionsFrame, text="Marcar como concluído", command=self.deleteToDo)
+        self.doneButton.grid(row=1, column=0, padx=10, pady=10)
+
+        self.exitButton = tk.Button(
+            actionsFrame, text="Sair", command=self.exit)
+        self.exitButton.grid(row=1, column=1, padx=10)
+
+        self.message = tk.Label(self)
+        self.message.grid(row=3, column=0)
 
     def updateToDoList(self):
-
         def sortDeadline(item):
             if (item.deadline == None):
                 return item.text
-            return item.deadline
+            return str(item.deadline)
+
         self.toDoList.sort(key=sortDeadline)
         self.listBox.delete(0, self.listBox.size() - 1)
         self.fillListBox()
@@ -93,13 +129,113 @@ class Main(WindowContent):
 
     def addToDo(self):
         addToDoText = self.addToDoText.get()
-        self.toDoList.append(ToDoItem(addToDoText))
+        try:
+            day = self.day.get().strip()
+            month = self.month.get().strip()
+            year = self.year.get().strip()
+
+            if day == "" or month == "" or year == "":
+                deadline = None
+            else:
+                deadline = datetime.datetime(
+                    year=int(year), month=int(month), day=int(day))
+        except:
+            self.message["text"] = "Algum dos valores é inválido, passe apenas n"
+
+        self.toDoList.append(ToDoItem(addToDoText, deadline=deadline))
         self.updateToDoList()
 
     def deleteToDo(self):
-        todo = self.listBox.curselection()
+        todo = self.listBox.curselection()[0]
         self.toDoList.pop(todo)
         self.updateToDoList()
+
+    def editToDo(self, index: int):
+        editToDoText = self.editTaskText.get()
+        try:
+            day = self.editDayEntry.get().strip()
+            month = self.editMonthEntry.get().strip()
+            year = self.editYearEntry.get().strip()
+
+            if day == "" or month == "" or year == "":
+                deadline = None
+            else:
+                deadline = datetime.datetime(
+                    year=int(year), month=int(month), day=int(day))
+        except:
+            self.editMessage["text"] = "Algum dos valores é inválido, passe apenas n"
+
+        self.toDoList[index].text = editToDoText
+        self.toDoList[index].deadline = deadline
+        self.updateToDoList()
+
+    def exit(self):
+        self.redirect(Login)
+
+    def onSelect(self, e):
+        print(e)
+        if len(self.listBox.curselection()) == 0:
+            return
+        todo = self.listBox.curselection()[0]
+        text, deadline = self.toDoList[todo].text, self.toDoList[todo].deadline
+
+        self.todoText["text"] = FORMATTED_VIEW_TEXT % (deadline, text)
+
+    def createEditScreen(self):
+        if len(self.listBox.curselection()) == 0:
+            return
+
+        todoIndex = self.listBox.curselection()[0]
+        todo = self.toDoList[todoIndex]
+
+        editScreen = tk.Toplevel(self.master)
+
+        inputsFrame = tk.Frame(editScreen)
+        inputsFrame.grid(row=0, column=0)
+
+        tk.Label(inputsFrame, text="Tarefa").grid(
+            column=0, row=0, pady=(0, 10))
+        self.editTaskText = tk.Entry(inputsFrame)
+        self.editTaskText.insert(0, todo.text)
+        self.editTaskText.grid(column=0, row=1, padx=10)
+
+        if todo.deadline != None:
+            day = todo.deadline.day
+            month = todo.deadline.month
+            year = todo.deadline.year
+
+        else:
+            day, month, year = "", "", ""
+
+        tk.Label(inputsFrame, text="Dia").grid(
+            column=0, row=2, pady=(0, 10))
+        self.editDayEntry = tk.Entry(inputsFrame, width=8)
+        self.editDayEntry.insert(0, day)
+        self.editDayEntry.grid(column=0, row=3, padx=10)
+
+        tk.Label(inputsFrame, text="Mês").grid(
+            column=1, row=2, pady=(0, 10))
+        self.editMonthEntry = tk.Entry(inputsFrame, width=8)
+        self.editMonthEntry.insert(0, month)
+        self.editMonthEntry.grid(column=1, row=3, padx=10)
+
+        tk.Label(inputsFrame, text="Ano").grid(
+            column=2, row=2, pady=(0, 10))
+        self.editYearEntry = tk.Entry(inputsFrame, width=8)
+        self.editYearEntry.insert(0, year)
+        self.editYearEntry.grid(column=2, row=3, padx=10)
+
+        def edit():
+            self.editToDo(todoIndex)
+            editScreen.destroy()
+
+        tk.Button(editScreen, text="Editar", command=edit).grid(
+            row=1, column=0, padx=10, pady=10)
+
+        self.editMessage = tk.Label(editScreen)
+        self.editMessage.grid(row=2, column=0)
+
+        editScreen.grid()
 
 
 class Login(WindowContent):
