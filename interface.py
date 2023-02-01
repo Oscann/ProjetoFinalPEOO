@@ -121,10 +121,10 @@ class Main(WindowContent):
         print(self.toDoList)
         for i in range(len(self.toDoList)):
             if self.toDoList[i].deadline != None:
-                text = breakTextLines(self.toDoList[i].text +
-                                      " - " + self.toDoList[i].deadline.__str__())
+                text = self.toDoList[i].text + \
+                                      " - " + self.toDoList[i].deadline.__str__()
             else:
-                text = breakTextLines(self.toDoList[i].text)
+                text = self.toDoList[i].text
             self.listBox.insert(i, text)
 
     def addToDo(self):
@@ -343,20 +343,3 @@ class SignUp(WindowContent):
 
         self.master.user = data[username]
         self.redirect(Main)
-
-
-def breakTextLines(text: str):
-    splittedText = text.split()
-
-    newText = []
-    tempText = ""
-
-    for substring in splittedText:
-        if len(tempText + " " + substring) >= LIST_BOX_WIDTH:
-            newText.append(tempText + "\n")
-            tempText = substring
-        else:
-            tempText += " " + substring
-    newText.append(tempText)
-
-    return "".join(newText)
